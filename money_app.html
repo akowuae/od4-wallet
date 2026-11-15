@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OD4 Wallet - Ghana</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 pb-28 font-sans">
+
+    <!-- Top Header -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-40 flex justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-violet-600 rounded-2xl flex items-center justify-center font-black text-white shadow-md">
+                ₵
+            </div>
+            <div>
+                <h1 class="font-bold text-base tracking-wide leading-tight">OD4 Wallet</h1>
+                <p class="text-[11px] text-violet-400 font-medium">Money Manager, Priorities & Receivables</p>
+            </div>
+        </div>
+        <button onclick="resetData()" class="text-xs bg-slate-800 text-red-400 px-3 py-1.5 rounded-xl border border-slate-700">
+            Reset
+        </button>
+    </header>
+
+    <!-- Main Container -->
+    <main class="p-4 max-w-md mx-auto space-y-5">
+
+        <!-- Balance Card -->
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl">
+            <p class="text-xs font-semibold text-slate-400 tracking-wider">TOTAL NET BALANCE</p>
+            <h2 id="totalBalance" class="text-3xl font-black text-white mt-1">₵ 0.00</h2>
+            
+            <div class="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-slate-800">
+                <div>
+                    <span class="text-[10px] font-bold text-emerald-400">TOTAL INCOME</span>
+                    <p id="totalIncome" class="text-lg font-bold text-white mt-0.5">₵ 0.00</p>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-rose-400">TOTAL EXPENSE</span>
+                    <p id="totalExpense" class="text-lg font-bold text-white mt-0.5">₵ 0.00</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-3">
+            <button onclick="openTxModal('income')" class="bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold p-4 rounded-2xl shadow-lg flex items-center justify-center space-x-2">
+                <span>+ Add Income</span>
+            </button>
+            <button onclick="openTxModal('expense')" class="bg-rose-600 active:bg-rose-700 text-white font-bold p-4 rounded-2xl shadow-lg flex items-center justify-center space-x-2">
+                <span>- Add Expense</span>
+            </button>
+        </div>
+
+        <!-- Spending Priorities Section -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-md space-y-3">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-xs text-slate-400 tracking-wider uppercase">Spending Priorities</h3>
+                    <p class="text-[10px] text-slate-500">Check box to fulfill & log as expense</p>
+                </div>
+                <button onclick="openPriorityModal()" class="text-xs bg-violet-600/20 text-violet-400 border border-violet-500/30 px-3 py-1.5 rounded-xl font-bold">
+                    + Add Priority
+                </button>
+            </div>
+            <div id="priorityList" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                <div class="text-center py-6 text-slate-500 text-xs">No priorities set yet.</div>
+            </div>
+        </div>
+
+        <!-- Promised Income / Owning Section -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-md space-y-3">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-xs text-slate-400 tracking-wider uppercase">Promised Income / Owning</h3>
+                    <p class="text-[10px] text-slate-500">Check box when received & log as income</p>
+                </div>
+                <button onclick="openPromisedModal()" class="text-xs bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl font-bold">
+                    + Add Promised
+                </button>
+            </div>
+            <div id="promisedList" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                <div class="text-center py-6 text-slate-500 text-xs">No promised income added yet.</div>
+            </div>
+        </div>
+
+        <!-- Chart Card -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-md">
+            <h3 class="font-bold text-xs text-slate-400 tracking-wider uppercase mb-3">Cashflow Overview</h3>
+            <div class="h-48 relative flex items-center justify-center">
+                <canvas id="cashflowChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Transactions Section -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-md space-y-3">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-xs text-slate-400 tracking-wider uppercase">Recent Transactions</h3>
+                <span id="txCount" class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">0 entries</span>
+            </div>
+            <div id="transactionList" class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                <div class="text-center py-8 text-slate-500 text-xs">No transactions recorded yet.</div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- TRANSACTION MODAL -->
+    <div id="txModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h3 id="txModalTitle" class="font-bold text-base text-white">Add Transaction</h3>
+                <button onclick="closeTxModal()" class="w-8 h-8 bg-slate-800 rounded-full text-slate-400 font-bold">✕</button>
+            </div>
+
+            <form onsubmit="handleTxSubmit(event)" class="space-y-4">
+                <input type="hidden" id="txId" value="">
+                <input type="hidden" id="txType" value="income">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Amount (GHS ₵)</label>
+                    <input type="number" step="0.01" id="txAmount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold text-lg outline-none focus:border-violet-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Category</label>
+                    <select id="txCategory" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-violet-500">
+                        <!-- Loaded dynamically -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Description / Note</label>
+                    <input type="text" id="txNote" placeholder="e.g. Salary / Support" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-violet-500">
+                </div>
+
+                <button type="submit" id="txSubmitBtn" class="w-full bg-violet-600 text-white font-bold py-3.5 rounded-xl shadow-lg">
+                    Save Transaction
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- PRIORITY MODAL (Add / Edit) -->
+    <div id="priorityModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h3 id="priorityModalTitle" class="font-bold text-base text-white">Add Spending Priority</h3>
+                <button onclick="closePriorityModal()" class="w-8 h-8 bg-slate-800 rounded-full text-slate-400 font-bold">✕</button>
+            </div>
+
+            <form onsubmit="handlePrioritySubmit(event)" class="space-y-4">
+                <input type="hidden" id="pId" value="">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Priority / Need Name</label>
+                    <input type="text" id="pName" required placeholder="e.g. Tithe / Savings / Bills" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-violet-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Target Amount (GHS ₵)</label>
+                    <input type="number" step="0.01" id="pAmount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold text-lg outline-none focus:border-violet-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Note / Allocation Rule</label>
+                    <input type="text" id="pNote" placeholder="e.g. 10% of income" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-violet-500">
+                </div>
+
+                <button type="submit" class="w-full bg-violet-600 text-white font-bold py-3.5 rounded-xl shadow-lg">
+                    Save Priority
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- PROMISED INCOME MODAL (Add / Edit) -->
+    <div id="promisedModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h3 id="promisedModalTitle" class="font-bold text-base text-white">Add Promised Income</h3>
+                <button onclick="closePromisedModal()" class="w-8 h-8 bg-slate-800 rounded-full text-slate-400 font-bold">✕</button>
+            </div>
+
+            <form onsubmit="handlePromisedSubmit(event)" class="space-y-4">
+                <input type="hidden" id="prId" value="">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Source / Person Owning</label>
+                    <input type="text" id="prName" required placeholder="e.g. John Doe / Client Payment" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Expected Amount (GHS ₵)</label>
+                    <input type="number" step="0.01" id="prAmount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold text-lg outline-none focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Note / Expected Date</label>
+                    <input type="text" id="prNote" placeholder="e.g. Expected by Friday" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 text-slate-950 font-bold py-3.5 rounded-xl shadow-lg">
+                    Save Promised Income
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- INCOME REMINDER POPUP MODAL -->
+    <div id="reminderModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-violet-500/40 w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl text-center">
+            <div class="w-14 h-14 bg-violet-600/20 text-violet-400 border border-violet-500/30 rounded-2xl flex items-center justify-center text-2xl mx-auto">
+                💡
+            </div>
+            <div>
+                <h3 class="text-lg font-black text-white">Money Received! Remember Your Priorities</h3>
+                <p class="text-xs text-slate-400 mt-1">Here is how you planned to distribute your funds:</p>
+            </div>
+
+            <div id="reminderList" class="space-y-2 max-h-60 overflow-y-auto text-left pr-1">
+                <!-- Injected reminder list -->
+            </div>
+
+            <button onclick="closeReminderModal()" class="w-full bg-violet-600 active:bg-violet-700 text-white font-bold py-3.5 rounded-xl shadow-lg">
+                Got it, I'll allocate accordingly! 👍
+            </button>
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+        let transactions = JSON.parse(localStorage.getItem('od4_wallet_txs')) || [];
+        let priorities = JSON.parse(localStorage.getItem('od4_wallet_priorities')) || [];
+        let promisedIncomes = JSON.parse(localStorage.getItem('od4_wallet_promised')) || [];
+        let cashflowChartInstance = null;
+
+        const incomeCategories = ["Salary", "Business", "Gift / Support", "Other Income"];
+        const expenseCategories = ["Chop Money", "Health", "School Fees", "Charity / Given", "Ceremony", "Transport", "Utilities / Data", "Other Expense"];
+
+        function openTxModal(type, editId = null) {
+            document.getElementById('txType').value = type;
+            document.getElementById('txId').value = editId || '';
+            
+            const titleElem = document.getElementById('txModalTitle');
+            const submitBtn = document.getElementById('txSubmitBtn');
+            const categorySelect = document.getElementById('txCategory');
+            
+            categorySelect.innerHTML = '';
+            let categories = type === 'income' ? incomeCategories : expenseCategories;
+            
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.innerText = cat;
+                categorySelect.appendChild(opt);
+            });
+
+            if(editId) {
+                const tx = transactions.find(t => t.id === editId);
+                if(tx) {
+                    titleElem.innerText = `Edit ${type === 'income' ? 'Income' : 'Expense'}`;
+                    document.getElementById('txAmount').value = tx.amount;
+                    document.getElementById('txCategory').value = tx.category;
+                    document.getElementById('txNote').value = tx.note;
+                }
+            } else {
+                titleElem.innerText = `Add ${type === 'income' ? 'Income' : 'Expense'}`;
+                document.getElementById('txAmount').value = '';
+                document.getElementById('txNote').value = '';
+            }
+
+            submitBtn.className = type === 'income' ? 
+                'w-full bg-emerald-600 text-slate-950 font-bold py-3.5 rounded-xl shadow-lg' : 
+                'w-full bg-rose-600 text-white font-bold py-3.5 rounded-xl shadow-lg';
+            
+            document.getElementById('txModal').classList.remove('hidden');
+        }
+
+        function closeTxModal() {
+            document.getElementById('txModal').classList.add('hidden');
+        }
+
+        function openPriorityModal(editId = null) {
+            document.getElementById('pId').value = editId || '';
+            const titleElem = document.getElementById('priorityModalTitle');
+
+            if(editId) {
+                const p = priorities.find(item => item.id === editId);
+                if(p) {
+                    titleElem.innerText = 'Edit Spending Priority';
+                    document.getElementById('pName').value = p.name;
+                    document.getElementById('pAmount').value = p.amount;
+                    document.getElementById('pNote').value = p.note;
+                }
+            } else {
+                titleElem.innerText = 'Add Spending Priority';
+                document.getElementById('pName').value = '';
+                document.getElementById('pAmount').value = '';
+                document.getElementById('pNote').value = '';
+            }
+            document.getElementById('priorityModal').classList.remove('hidden');
+        }
+
+        function closePriorityModal() {
+            document.getElementById('priorityModal').classList.add('hidden');
+        }
+
+        function openPromisedModal(editId = null) {
+            document.getElementById('prId').value = editId || '';
+            const titleElem = document.getElementById('promisedModalTitle');
+
+            if(editId) {
+                const pr = promisedIncomes.find(item => item.id === editId);
+                if(pr) {
+                    titleElem.innerText = 'Edit Promised Income';
+                    document.getElementById('prName').value = pr.name;
+                    document.getElementById('prAmount').value = pr.amount;
+                    document.getElementById('prNote').value = pr.note;
+                }
+            } else {
+                titleElem.innerText = 'Add Promised Income';
+                document.getElementById('prName').value = '';
+                document.getElementById('prAmount').value = '';
+                document.getElementById('prNote').value = '';
+            }
+            document.getElementById('promisedModal').classList.remove('hidden');
+        }
+
+        function closePromisedModal() {
+            document.getElementById('promisedModal').classList.add('hidden');
+        }
+
+        function closeReminderModal() {
+            document.getElementById('reminderModal').classList.add('hidden');
+        }
+
+        function handlePrioritySubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('pId').value;
+            const name = document.getElementById('pName').value;
+            const amount = parseFloat(document.getElementById('pAmount').value);
+            const note = document.getElementById('pNote').value || 'Planned Need';
+
+            if(editId) {
+                priorities = priorities.map(p => p.id == editId ? { ...p, name, amount, note } : p);
+            } else {
+                const newPriority = { id: Date.now(), name, amount, note, achieved: false };
+                priorities.push(newPriority);
+            }
+
+            localStorage.setItem('od4_wallet_priorities', JSON.stringify(priorities));
+            closePriorityModal();
+            renderPriorities();
+        }
+
+        function handlePromisedSubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('prId').value;
+            const name = document.getElementById('prName').value;
+            const amount = parseFloat(document.getElementById('prAmount').value);
+            const note = document.getElementById('prNote').value || 'Promised / Owning';
+
+            if(editId) {
+                promisedIncomes = promisedIncomes.map(pr => pr.id == editId ? { ...pr, name, amount, note } : pr);
+            } else {
+                const newPromised = { id: Date.now(), name, amount, note, achieved: false };
+                promisedIncomes.push(newPromised);
+            }
+
+            localStorage.setItem('od4_wallet_promised', JSON.stringify(promisedIncomes));
+            closePromisedModal();
+            renderPromised();
+        }
+
+        function togglePriorityAchieved(id) {
+            priorities = priorities.map(p => {
+                if(p.id === id) {
+                    const newAchievedState = !p.achieved;
+                    if(newAchievedState) {
+                        const newExpenseTx = {
+                            id: Date.now(),
+                            type: 'expense',
+                            amount: p.amount,
+                            category: 'Other Expense',
+                            note: `Priority: ${p.name}`,
+                            date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                        };
+                        transactions.unshift(newExpenseTx);
+                        localStorage.setItem('od4_wallet_txs', JSON.stringify(transactions));
+                        updateDashboard();
+                        renderChart();
+                    }
+                    return { ...p, achieved: newAchievedState };
+                }
+                return p;
+            });
+            localStorage.setItem('od4_wallet_priorities', JSON.stringify(priorities));
+            renderPriorities();
+        }
+
+        function togglePromisedAchieved(id) {
+            promisedIncomes = promisedIncomes.map(pr => {
+                if(pr.id === id) {
+                    const newAchievedState = !pr.achieved;
+                    if(newAchievedState) {
+                        const newIncomeTx = {
+                            id: Date.now(),
+                            type: 'income',
+                            amount: pr.amount,
+                            category: 'Business',
+                            note: `Promised: ${pr.name}`,
+                            date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                        };
+                        transactions.unshift(newIncomeTx);
+                        localStorage.setItem('od4_wallet_txs', JSON.stringify(transactions));
+                        updateDashboard();
+                        renderChart();
+
+                        if(priorities.length > 0) {
+                            showIncomeReminder();
+                        }
+                    }
+                    return { ...pr, achieved: newAchievedState };
+                }
+                return pr;
+            });
+            localStorage.setItem('od4_wallet_promised', JSON.stringify(promisedIncomes));
+            renderPromised();
+        }
+
+        function editPriority(id) {
+            openPriorityModal(id);
+        }
+
+        function deletePriority(id) {
+            priorities = priorities.filter(p => p.id !== id);
+            localStorage.setItem('od4_wallet_priorities', JSON.stringify(priorities));
+            renderPriorities();
+        }
+
+        function editPromised(id) {
+            openPromisedModal(id);
+        }
+
+        function deletePromised(id) {
+            promisedIncomes = promisedIncomes.filter(pr => pr.id !== id);
+            localStorage.setItem('od4_wallet_promised', JSON.stringify(promisedIncomes));
+            renderPromised();
+        }
+
+        function renderPriorities() {
+            const container = document.getElementById('priorityList');
+            if(priorities.length === 0) {
+                container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs">No priorities set yet. Add how you plan to spend incoming funds!</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            priorities.forEach(p => {
+                const isAchieved = p.achieved;
+                container.innerHTML += `
+                    <div class="flex justify-between items-center p-3 bg-slate-950 border ${isAchieved ? 'border-emerald-500/30 opacity-60' : 'border-slate-800'} rounded-2xl">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" ${isAchieved ? 'checked' : ''} onclick="togglePriorityAchieved(${p.id})" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+                            <div>
+                                <h4 class="font-bold text-xs ${isAchieved ? 'line-through text-slate-400' : 'text-white'}">${p.name}</h4>
+                                <p class="text-[10px] text-slate-400">${p.note}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-black text-xs ${isAchieved ? 'text-slate-500' : 'text-amber-400'}">₵${p.amount.toFixed(2)}</span>
+                            <button onclick="editPriority(${p.id})" class="text-slate-400 hover:text-violet-400 px-1 py-0.5 text-[10px] bg-slate-900 rounded border border-slate-800">Edit</button>
+                            <button onclick="deletePriority(${p.id})" class="text-slate-600 hover:text-rose-400 p-1">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderPromised() {
+            const container = document.getElementById('promisedList');
+            if(promisedIncomes.length === 0) {
+                container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs">No promised income added yet.</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            promisedIncomes.forEach(pr => {
+                const isAchieved = pr.achieved;
+                container.innerHTML += `
+                    <div class="flex justify-between items-center p-3 bg-slate-950 border ${isAchieved ? 'border-emerald-500/30 opacity-60' : 'border-slate-800'} rounded-2xl">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" ${isAchieved ? 'checked' : ''} onclick="togglePromisedAchieved(${pr.id})" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+                            <div>
+                                <h4 class="font-bold text-xs ${isAchieved ? 'line-through text-slate-400' : 'text-white'}">${pr.name}</h4>
+                                <p class="text-[10px] text-slate-400">${pr.note}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-black text-xs ${isAchieved ? 'text-slate-500' : 'text-emerald-400'}">₵${pr.amount.toFixed(2)}</span>
+                            <button onclick="editPromised(${pr.id})" class="text-slate-400 hover:text-emerald-400 px-1 py-0.5 text-[10px] bg-slate-900 rounded border border-slate-800">Edit</button>
+                            <button onclick="deletePromised(${pr.id})" class="text-slate-600 hover:text-rose-400 p-1">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function handleTxSubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('txId').value;
+            const type = document.getElementById('txType').value;
+            const amount = parseFloat(document.getElementById('txAmount').value);
+            const category = document.getElementById('txCategory').value;
+            const note = document.getElementById('txNote').value || category;
+            
+            if(editId) {
+                transactions = transactions.map(t => t.id == editId ? { ...t, type, amount, category, note } : t);
+            } else {
+                const newTx = {
+                    id: Date.now(),
+                    type,
+                    amount,
+                    category,
+                    note,
+                    date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                };
+                transactions.unshift(newTx);
+
+                if(type === 'income' && priorities.length > 0) {
+                    showIncomeReminder();
+                }
+            }
+
+            localStorage.setItem('od4_wallet_txs', JSON.stringify(transactions));
+            closeTxModal();
+            updateDashboard();
+            renderChart();
+        }
+
+        function showIncomeReminder() {
+            const list = document.getElementById('reminderList');
+            list.innerHTML = '';
+            priorities.forEach(p => {
+                if(!p.achieved) {
+                    list.innerHTML += `
+                        <div class="flex justify-between items-center p-2.5 bg-slate-950 border border-slate-800 rounded-xl">
+                            <div>
+                                <h4 class="font-bold text-xs text-white">${p.name}</h4>
+                                <p class="text-[10px] text-slate-400">${p.note}</p>
+                            </div>
+                            <span class="font-black text-xs text-amber-400">₵${p.amount.toFixed(2)}</span>
+                        </div>
+                    `;
+                }
+            });
+            document.getElementById('reminderModal').classList.remove('hidden');
+        }
+
+        function editTx(id) {
+            const tx = transactions.find(t => t.id === id);
+            if(tx) openTxModal(tx.type, tx.id);
+        }
+
+        function deleteTx(id) {
+            if(confirm('Delete this record?')) {
+                transactions = transactions.filter(t => t.id !== id);
+                localStorage.setItem('od4_wallet_txs', JSON.stringify(transactions));
+                updateDashboard();
+                renderChart();
+            }
+        }
+
+        function resetData() {
+            if(confirm('Clear all data?')) {
+                transactions = [];
+                priorities = [];
+                promisedIncomes = [];
+                localStorage.removeItem('od4_wallet_txs');
+                localStorage.removeItem('od4_wallet_priorities');
+                localStorage.removeItem('od4_wallet_promised');
+                updateDashboard();
+                renderChart();
+                renderPriorities();
+                renderPromised();
+            }
+        }
+
+        function updateDashboard() {
+            let totalInc = 0;
+            let totalExp = 0;
+            const listContainer = document.getElementById('transactionList');
+            
+            if(transactions.length === 0) {
+                listContainer.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">No transactions recorded yet.</div>`;
+                document.getElementById('txCount').innerText = '0 entries';
+            } else {
+                listContainer.innerHTML = '';
+                document.getElementById('txCount').innerText = `${transactions.length} entries`;
+                
+                transactions.forEach(t => {
+                    if(t.type === 'income') totalInc += t.amount;
+                    else totalExp += t.amount;
+
+                    const isInc = t.type === 'income';
+                    listContainer.innerHTML += `
+                        <div class="flex justify-between items-center p-3 bg-slate-950 border border-slate-800 rounded-2xl">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold ${isInc ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
+                                    ${isInc ? '+' : '-'}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-xs text-white">${t.note}</h4>
+                                    <p class="text-[10px] text-slate-400">${t.category} • ${t.date}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="font-black text-sm ${isInc ? 'text-emerald-400' : 'text-rose-400'}">
+                                    ${isInc ? '+' : '-'} ₵${t.amount.toFixed(2)}
+                                </span>
+                                <button onclick="editTx(${t.id})" class="text-slate-400 hover:text-violet-400 px-1.5 py-1 text-xs bg-slate-900 rounded-lg border border-slate-800">Edit</button>
+                                <button onclick="deleteTx(${t.id})" class="text-slate-600 hover:text-rose-400 p-1">✕</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('totalBalance').innerText = `₵ ${(totalInc - totalExp).toFixed(2)}`;
+            document.getElementById('totalIncome').innerText = `₵ ${totalInc.toFixed(2)}`;
+            document.getElementById('totalExpense').innerText = `₵ ${totalExp.toFixed(2)}`;
+        }
+
+        function renderChart() {
+            let totalInc = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+            let totalExp = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+            if(totalInc === 0 && totalExp === 0) { totalInc = 1; totalExp = 1; }
+
+            const ctx = document.getElementById('cashflowChart').getContext('2d');
+            if(cashflowChartInstance) cashflowChartInstance.destroy();
+
+            cashflowChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Income', 'Expenses'],
+                    datasets: [{
+                        data: [totalInc, totalExp],
+                        backgroundColor: ['#10b981', '#f43f5e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // Run on load
+        updateDashboard();
+        renderChart();
+        renderPriorities();
+        renderPromised();
+    </script>
+</body>
+</html>
